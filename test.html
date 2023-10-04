@@ -12,7 +12,11 @@
             Please use a browser that supports "canvas"
         </canvas>
 		
-		<p>Press "r" to turn rotation</p>
+		  <div>
+            <label>Alterar velocidade de rotação de X:</label>
+            <input type="number" step="0.1" id="rotationSpeedInput" placeholder="Digite a velocidade">
+            <button onclick="updateRotationSpeed()">Atualizar Velocidade</button>
+        </div>
 
         <script id="vertexShader" type="x-shader/x-vertex">
             uniform mat4 model;
@@ -42,5 +46,23 @@
         <script src="cuon-matrix.js"></script>
 
         <script src="test.js"></script>
+		
+		<script>
+    // Declaração global de xIncrement
+    var xIncrement = 1.0;
+
+    function updateRotationSpeed() {
+        // Obtém o valor do input
+        const speedValue = parseFloat(document.getElementById('rotationSpeedInput').value);
+        
+        // Verifica se o valor é um número válido
+        if (!isNaN(speedValue)) {
+            // Atualiza a variável xIncrement
+            xIncrement = speedValue;
+        } else {
+            alert('Por favor, insira um número válido.');
+        }
+    }
+</script>
     </body>
 </html>
