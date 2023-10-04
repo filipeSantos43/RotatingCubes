@@ -27,8 +27,6 @@
  *
  * @author Paulo Roma
  * @date 27/09/2016
- * @see <a href="/cwdc/13-webgl/homework/hw3/test.html?rev=3">link</a>
- * @see <a href="/cwdc/13-webgl/homework/hw3/test.js">source</a>
  */
 
 "use strict";
@@ -64,8 +62,6 @@ var vertexColorBuffer;
 var indexBuffer;
 var axisBuffer;
 var axisColorBuffer;
-var rotationDirection = 1.0; // 1.0 para rotação normal, -1.0 para rotação invertida
-
 
 /**
  * Handle to the compiled shader program on the GPU.
@@ -245,7 +241,7 @@ const deg2rad = (deg) => (deg * Math.PI) / 180.0;
  * @param {WebGLRenderingContext} gl WebGL context.
  * @param {Number} rad rotation angle for the cubes.
  */
-function draw(gl, rad) {
+function draw(gl, rad, localRad) {
   // clear the framebuffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -262,9 +258,17 @@ function draw(gl, rad) {
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
   gl.vertexAttribPointer(colorIndex, 4, gl.FLOAT, false, 0, 0);
 
+  let X_ = 8 //
+  let Y_ = 8 //
+
   // identity transformation
+  var x1 = X_ * Math.cos(rad);
+  var z1 = Y_ * Math.sin(rad);
+
   let model = new Matrix4()
+    .translate(x1, 0, z1)
     .multiply(modelMatrix)
+    .rotate(localRad, 0, 1, 0) // Rotacionar em torno do eixo Y local;
     .rotate(-45, 0, 0, 1)
     .scale(1, 8, 1);
 
@@ -283,33 +287,40 @@ function draw(gl, rad) {
 
   loc = gl.getUniformLocation(shader, "model");
   model = new Matrix4()
+    .translate(x1, 0, z1)
     .multiply(modelMatrix)
+    .rotate(localRad, 0, 1, 0) // Rotacionar em torno do eixo Y local;
     .rotate(45, 0, 0, 1)
     .scale(1, 8, 1);
   gl.uniformMatrix4fv(loc, false, model.elements);
+
   // draw the X right leg: cube scaled by 8 in y and rotated 45° in z
   gl.drawArrays(gl.TRIANGLES, 0, cube.numVertices);
 
   // second cube
-  var x = 8 * Math.cos(rad);
-  var z = 8 * Math.sin(rad);
-  loc = gl.getUniformLocation(shader, "model");
-  model = new Matrix4()
-    .translate(x, 0, z)
+  var x2 = (X_ + 4) * Math.cos(rad);
+  var z2 = (X_ + 4) * Math.sin(rad);
+  var loc2 = gl.getUniformLocation(shader, "model");
+  var model2 = new Matrix4()
+    .translate(x2, 0, z2)
     .multiply(modelMatrix)
-    .scale(1 / 2, 1 / 2, 1 / 2);
-  gl.uniformMatrix4fv(loc, false, model.elements);
+    .scale(1 / 2, 1 / 2, 1 / 2)
+    .rotate(localRad*3, 0, 1, 0); // Rotacionar em torno do eixo Y local;
+
+  gl.uniformMatrix4fv(loc2, false, model2.elements);
   gl.drawArrays(gl.TRIANGLES, 0, cube.numVertices);
 
   // third cube
-  var x = 6 * Math.cos(-rad);
-  var z = 6 * Math.sin(-rad);
-  loc = gl.getUniformLocation(shader, "model");
-  model = new Matrix4()
-    .translate(x, 0, z)
+  var x3 = (X_ + 6) * Math.cos(-rad);
+  var z3 = (X_ + 6) * Math.sin(-rad);
+  var loc3 = gl.getUniformLocation(shader, "model");
+  var model3 = new Matrix4()
+    .translate(x3, 0, z3)
     .multiply(modelMatrix)
-    .scale(1 / 3, 1 / 3, 1 / 3);
-  gl.uniformMatrix4fv(loc, false, model.elements);
+    .scale(1 / 3, 1 / 3, 1 / 3)
+    .rotate(localRad*2, 0, 1, 0); // Rotacionar em torno do eixo Y local;
+
+  gl.uniformMatrix4fv(loc3, false, model3.elements);
   gl.drawArrays(gl.TRIANGLES, 0, cube.numVertices);
 
   // draw axes (not transformed by model transformation)
@@ -319,7 +330,7 @@ function draw(gl, rad) {
   gl.vertexAttribPointer(colorIndex, 4, gl.FLOAT, false, 0, 0);
 
   loc = gl.getUniformLocation(shader, "model");
-  model = new Matrix4().multiply(modelMatrix).scale(1, 1, 1.0);
+  model = new Matrix4().translate(x1, 0, z1).multiply(modelMatrix).scale(1, 1, 1.0);
   gl.uniformMatrix4fv(loc, false, model.elements);
   // draw axes
   gl.drawArrays(gl.LINES, 0, 6);
@@ -424,36 +435,32 @@ function mainEntrance() {
    * @global
    */
   var animate = (() => {
-  let angle = 0.0; // ângulo inicial
-  const increment = 1.0 * rotationDirection; // incremento do ângulo a cada frame
+    
+    var angle = 0.0;          // ângulo inicial
+    var xAngle = 0.0;     // ângulo inicial X
+  //  var xIncrement = 1.0; // incremento do ângulo de X a cada frame
 
-  /**
-   * Função interna que atualiza a matriz do modelo e chama a função draw.
-   */
-  function updateModelMatrix() {
-    angle +=  1.0 * rotationDirection;
-    if (angle > 360.0) {
+    
+    return function () {
+      // Incrementa o angulo
+      angle += 1.0;
+
+	//verifica angulo maior que 365
+      if (angle > 360.0) {
       angle -= 360.0;
     }
 
-    // Chama a função draw com o ângulo atualizado
-    draw(gl, deg2rad(angle));
+       // Incrementa o angulo X
+      xAngle += xIncrement;
 
-    // Solicita o próximo frame de animação
-    requestAnimationFrame(updateModelMatrix);
-  }
-
-  return updateModelMatrix;
-})();
-
-	document.addEventListener("keydown", function(event) {
-		if (event.key === "R" || event.key === "r") {
-			rotationDirection *= -1; // Inverte a direção da rotação
-			 console.log("Direction changed to:", rotationDirection); 
-		}
-	});
+       //  Chama a função draw com o ângulo atualizado
+      draw(gl, deg2rad(angle), xAngle);
 
 
+      // Solicita o próximo frame de animação
+      requestAnimationFrame(animate);
+    };
+  })();
 
   animate();
 }
